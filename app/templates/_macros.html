@@ -1,0 +1,20 @@
+{% macro field(name, label, form, errors, type="text", required=false, help=None, attrs="") -%}
+<label class="field {% if errors.get(name) %}has-error{% endif %}">
+  <span>{{ label }}{% if required %} *{% endif %}</span>
+  <input type="{{ type }}" name="{{ name }}" value="{{ form.get(name, '') }}" {% if required %}required{% endif %} {{ attrs|safe }}>
+  {% if errors.get(name) %}<small class="error">{{ errors[name] }}</small>{% elif help %}<small class="help">{{ help }}</small>{% endif %}
+</label>
+{%- endmacro %}
+
+{% macro health_badge(cert) -%}
+{% set h = cert.health(today) %}
+<span class="badge badge-{{ h|lower|replace(' ', '-') }}">{{ h }}</span>
+{%- endmacro %}
+
+{% macro status_badge(status) -%}
+<span class="status status-{{ status.value }}">{{ status.label }}</span>
+{%- endmacro %}
+
+{% macro bar(pct) -%}
+<div class="bar" title="{{ pct }}%"><div style="width: {{ pct }}%"></div></div>
+{%- endmacro %}

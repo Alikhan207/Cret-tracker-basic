@@ -1,0 +1,24 @@
+{% extends "base.html" %}
+{% from "_macros.html" import field %}
+{% block title %}Profile{% endblock %}
+{% block content %}
+<h1>Profile</h1>
+{% set form = request.form if request.method == 'POST' else {'name': g.user.name, 'department': g.user.department or ''} %}
+<form method="post" class="card stack narrow" novalidate>
+  <input type="hidden" name="_csrf" value="{{ csrf_token() }}">
+  <div class="kv"><span>Email</span>{{ g.user.email }}</div>
+  <div class="kv"><span>Role</span>{{ g.user.role.value|title }}</div>
+  {{ field("name", "Full name", form, errors, required=true) }}
+  {{ field("department", "Department", form, errors) }}
+  <h3>Change password <small class="muted">(optional)</small></h3>
+  <label class="field {% if errors.new_password %}has-error{% endif %}">
+    <span>New password</span><input type="password" name="new_password">
+    {% if errors.new_password %}<small class="error">{{ errors.new_password }}</small>{% endif %}
+  </label>
+  <label class="field {% if errors.confirm_password %}has-error{% endif %}">
+    <span>Confirm new password</span><input type="password" name="confirm_password">
+    {% if errors.confirm_password %}<small class="error">{{ errors.confirm_password }}</small>{% endif %}
+  </label>
+  <button class="btn">Save profile</button>
+</form>
+{% endblock %}
