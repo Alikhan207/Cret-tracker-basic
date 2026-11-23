@@ -1,0 +1,24 @@
+{% extends "base.html" %}
+{% from "_macros.html" import field %}
+{% block title %}Register{% endblock %}
+{% block content %}
+<div class="auth-card">
+  <h1>Create account</h1>
+  <form method="post" class="stack" novalidate>
+    <input type="hidden" name="_csrf" value="{{ csrf_token() }}">
+    {{ field("name", "Full name", form, errors, required=true) }}
+    {{ field("email", "Email", form, errors, type="email", required=true) }}
+    {{ field("department", "Department", form, errors, help="e.g. AI & DS") }}
+    <label class="field {% if errors.password %}has-error{% endif %}">
+      <span>Password *</span><input type="password" name="password" required>
+      {% if errors.password %}<small class="error">{{ errors.password }}</small>{% else %}<small class="help">8+ characters, at least one letter and one number</small>{% endif %}
+    </label>
+    <label class="field {% if errors.confirm_password %}has-error{% endif %}">
+      <span>Confirm password *</span><input type="password" name="confirm_password" required>
+      {% if errors.confirm_password %}<small class="error">{{ errors.confirm_password }}</small>{% endif %}
+    </label>
+    <button class="btn">Create account</button>
+  </form>
+  <p class="muted">Already registered? <a href="{{ url_for('auth.login') }}">Log in</a></p>
+</div>
+{% endblock %}

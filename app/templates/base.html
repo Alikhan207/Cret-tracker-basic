@@ -1,0 +1,37 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>{% block title %}CertTrack{% endblock %} · CertTrack</title>
+  <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+</head>
+<body>
+<header class="topbar">
+  <a class="brand" href="{{ url_for('views.dashboard') }}">Cert<span>Track</span></a>
+  {% if g.user %}
+  <nav>
+    {% if g.user.is_mentor %}
+      <a href="{{ url_for('views.reports') }}">Reports</a>
+      <a href="{{ url_for('views.cert_list') }}">All certifications</a>
+    {% else %}
+      <a href="{{ url_for('views.dashboard') }}">Dashboard</a>
+      <a href="{{ url_for('views.cert_list') }}">My certifications</a>
+      <a href="{{ url_for('views.cert_create') }}" class="btn btn-sm">+ Add</a>
+    {% endif %}
+    <a href="{{ url_for('views.profile') }}">{{ g.user.name.split()[0] }}{% if g.user.is_mentor %} <small class="pill">mentor</small>{% endif %}</a>
+    <form method="post" action="{{ url_for('auth.logout') }}" class="inline">
+      <input type="hidden" name="_csrf" value="{{ csrf_token() }}">
+      <button class="link">Log out</button>
+    </form>
+  </nav>
+  {% endif %}
+</header>
+<main class="container">
+  {% for category, message in get_flashed_messages(with_categories=true) %}
+    <div class="flash flash-{{ category }}">{{ message }}</div>
+  {% endfor %}
+  {% block content %}{% endblock %}
+</main>
+</body>
+</html>
