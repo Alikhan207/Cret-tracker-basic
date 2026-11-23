@@ -1,0 +1,67 @@
+{% extends "base.html" %}
+{% from "_macros.html" import health_badge, bar %}
+{% block title %}Mentor report{% endblock %}
+{% block content %}
+<div class="head">
+  <h1>Mentor report</h1>
+  <a class="btn btn-ghost" href="{{ url_for('views.reports_csv') }}">Export CSV</a>
+</div>
+
+<section class="stats">
+  <div class="stat"><b>{{ r.totals.students }}</b><span>Students</span></div>
+  <div class="stat"><b>{{ r.totals.certifications }}</b><span>Certifications</span></div>
+  <div class="stat"><b>{{ r.totals.completed }}</b><span>Completed</span></div>
+  <div class="stat {% if r.totals.overdue %}stat-alert{% endif %}"><b>{{ r.totals.overdue }}</b><span>Overdue (pending)</span></div>
+</section>
+
+<section class="card">
+  <h2>Students</h2>
+  <table class="table">
+    <thead><tr><th>Student</th><th>Dept</th><th>Total</th><th>Done</th><th>In progress</th><th>Planned</th><th>Overdue</th><th>Avg progress</th><th>Hours</th><th>Last activity</th></tr></thead>
+    <tbody>
+    {% for s in r.students %}
+      <tr {% if s.overdue %}class="row-alert"{% endif %}>
+        <td>{{ s.name }}<br><small class="muted">{{ s.email }}</small></td>
+        <td>{{ s.department or '—' }}</td>
+        <td>{{ s.total }}</td><td>{{ s.completed or 0 }}</td><td>{{ s.in_progress or 0 }}</td><td>{{ s.planned or 0 }}</td>
+        <td><b>{{ s.overdue or 0 }}</b></td>
+        <td>{% if s.avg_progress is not none %}<div class="w120">{{ bar(s.avg_progress) }}<small>{{ s.avg_progress }}%</small></div>{% else %}—{% endif %}</td>
+        <td>{{ '%g'|format(s.hours) }}</td>
+        <td>{{ s.last_activity[:10] if s.last_activity else 'never' }}</td>
+      </tr>
+    {% endfor %}
+    </tbody>
+  </table>
+</section>
+
+<div class="grid2">
+  <section class="card">
+    <h2>Pending work (past target date)</h2>
+    {% for c in r.pending %}
+      <a class="row-link" href="{{ url_for('views.cert_detail', cert_id=c.id) }}">
+        <span>{{ c.owner_name }} — {{ c.title }}<br><small class="muted">target {{ c.target_date.strftime('%d %b %Y') }} · {{ (today - c.target_date).days }} days late · {{ c.progress }}%</small></span>
+        {{ health_badge(c) }}
+      </a>
+    {% else %}<p class="muted">No overdue certifications.</p>{% endfor %}
+  </section>
+  <section class="card">
+    <h2>Renewals (expired / expiring in 30 days)</h2>
+    {% for c in r.expiring %}
+      <a class="row-link" href="{{ url_for('views.cert_detail', cert_id=c.id) }}">
+        <span>{{ c.owner_name }} — {{ c.title }}<br><small class="muted">expires {{ c.expiry_date.strftime('%d %b %Y') }}</small></span>
+        {{ health_badge(c) }}
+      </a>
+    {% else %}<p class="muted">No renewals due.</p>{% endfor %}
+    {% if r.inactive %}
+      <h2>Not started tracking</h2>
+      <p>{% for s in r.inactive %}{{ s.name }}{{ ', ' if not loop.last }}{% endfor %}</p>
+    {% endif %}
+  </section>
+</div>
+
+<section class="card">
+  <h2>Popular providers</h2>
+  <table class="table compact"><thead><tr><th>Provider</th><th>Tracked</th><th>Completed</th></tr></thead>
+  <tbody>{% for p in r.providers %}<tr><td>{{ p.name }}</td><td>{{ p.total }}</td><td>{{ p.completed }}</td></tr>{% endfor %}</tbody></table>
+</section>
+{% endblock %}

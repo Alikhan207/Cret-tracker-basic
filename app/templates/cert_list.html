@@ -1,0 +1,99 @@
+{% extends "base.html" %}
+{% from "_macros.html" import health_badge, status_badge, bar %}
+{% block title %}Certifications{% endblock %}
+{% block content %}
+<div class="head">
+  <h1>{% if g.user.is_mentor %}All certifications{% else %}My certifications{% endif %}</h1>
+  {% if not g.user.is_mentor %}<a class="btn" href="{{ url_for('views.cert_create') }}">+ Add certification</a>{% endif %}
+</div>
+
+<form method="get" class="filters" id="filters">
+  <input type="search" name="q" placeholder="Search title, provider, notes, credential ID" value="{{ filters.q }}">
+  <select name="status">
+    <option value="">All statuses</option>
+    {% for s in STATUSES %}<option value="{{ s.value }}" {% if filters.status == s.value %}selected{% endif %}>{{ s.label }}</option>{% endfor %}
+  </select>
+  <select name="category">
+    <option value="">All categories</option>
+    {% for c in CATEGORIES %}<option {% if filters.category == c %}selected{% endif %}>{{ c }}</option>{% endfor %}
+  </select>
+  <select name="provider">
+    <option value="">All providers</option>
+    {% for p in providers %}<option {% if filters.provider == p %}selected{% endif %}>{{ p }}</option>{% endfor %}
+  </select>
+  <select name="sort">
+    {% for key, label in [("target","Target date"),("updated","Recently updated"),("progress","Progress"),("title","Title A-Z")] %}
+      <option value="{{ key }}" {% if filters.sort == key %}selected{% endif %}>Sort: {{ label }}</option>
+    {% endfor %}
+  </select>
+  <noscript><button class="btn btn-sm">Apply</button></noscript>
+  <a href="{{ url_for('views.cert_list') }}" class="muted" id="clear-filters">Clear</a>
+</form>
+
+<div id="results">
+<p class="muted">{{ certs|length }} result{{ '' if certs|length == 1 else 's' }}{% if filters.q or filters.status or filters.category or filters.provider %} (filtered){% endif %}</p>
+
+{% if certs %}
+<table class="table">
+  <thead><tr>
+    {% if g.user.is_mentor %}<th>Student</th>{% endif %}
+    <th>Certification</th><th>Category</th><th>Status</th><th>Progress</th><th>Target</th><th>Health</th>
+  </tr></thead>
+  <tbody>
+  {% for c in certs %}
+    <tr>
+      {% if g.user.is_mentor %}<td>{{ c.owner_name }}</td>{% endif %}
+      <td><a href="{{ url_for('views.cert_detail', cert_id=c.id) }}">{{ c.title }}</a><br><small class="muted">{{ c.provider_name }}</small></td>
+      <td>{{ c.category }}</td>
+      <td>{{ status_badge(c.status) }}</td>
+      <td><div class="w120">{{ bar(c.progress) }}<small>{{ c.progress }}%</small></div></td>
+      <td>{{ c.target_date.strftime('%d %b %Y') if c.target_date else '—' }}</td>
+      <td>{{ health_badge(c) }}</td>
+    </tr>
+  {% endfor %}
+  </tbody>
+</table>
+{% else %}
+<div class="empty"><p>{% if filters.q or filters.status or filters.category or filters.provider %}No certifications match these filters.{% else %}No certifications yet.{% endif %}</p></div>
+{% endif %}
+</div>
+
+<script>
+// Live filtering: every change re-queries the server (same GET /certifications?...)
+// and swaps only the results, so typing in the search box keeps focus.
+(function () {
+  const form = document.getElementById("filters");
+  const results = document.getElementById("results");
+  let timer = null, controller = null;
+
+  async function refresh() {
+    const params = new URLSearchParams(new FormData(form));
+    for (const [k, v] of [...params]) if (!v) params.delete(k);   // drop empty filters
+    const url = form.action.split("?")[0] + (params.toString() ? "?" + params : "");
+    if (controller) controller.abort();
+    controller = new AbortController();
+    try {
+      const res = await fetch(url, { signal: controller.signal });
+      const html = await res.text();
+      const doc = new DOMParser().parseFromString(html, "text/html");
+      results.innerHTML = doc.getElementById("results").innerHTML;
+      history.replaceState(null, "", url);
+    } catch (e) {
+      if (e.name !== "AbortError") form.submit();   // fallback: normal page load
+    }
+  }
+
+  form.addEventListener("change", refresh);                  // dropdowns: instant
+  form.addEventListener("input", (e) => {                    // search box: after typing pauses
+    if (e.target.name === "q") { clearTimeout(timer); timer = setTimeout(refresh, 300); }
+  });
+  form.addEventListener("submit", (e) => { e.preventDefault(); refresh(); });
+  document.getElementById("clear-filters").addEventListener("click", (e) => {
+    e.preventDefault(); form.reset();
+    form.querySelectorAll("input, select").forEach(el => { if (el.name !== "sort") el.value = ""; });
+    form.querySelector("[name=sort]").value = "target";
+    refresh();
+  });
+})();
+</script>
+{% endblock %}

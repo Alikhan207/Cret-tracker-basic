@@ -1,0 +1,61 @@
+{% extends "base.html" %}
+{% from "_macros.html" import health_badge, status_badge, bar, field %}
+{% block title %}{{ cert.title }}{% endblock %}
+{% block content %}
+<div class="head">
+  <div>
+    <h1>{{ cert.title }}</h1>
+    <p class="muted">{{ cert.provider_name }} · {{ cert.category }}{% if g.user.is_mentor %} · {{ cert.owner_name }}{% endif %}</p>
+  </div>
+  {% if cert.user_id == g.user.id %}
+  <div class="actions">
+    <a class="btn btn-ghost" href="{{ url_for('views.cert_edit', cert_id=cert.id) }}">Edit</a>
+    <form method="post" action="{{ url_for('views.cert_delete', cert_id=cert.id) }}" class="inline"
+          onsubmit="return confirm('Delete this certification and all its progress logs?');">
+      <input type="hidden" name="_csrf" value="{{ csrf_token() }}">
+      <button class="btn btn-danger">Delete</button>
+    </form>
+  </div>
+  {% endif %}
+</div>
+
+<div class="grid2">
+  <section class="card">
+    <div class="kv"><span>Status</span>{{ status_badge(cert.status) }}</div>
+    <div class="kv"><span>Health</span>{{ health_badge(cert) }}</div>
+    <div class="kv"><span>Progress</span><span class="w160">{{ bar(cert.progress) }}<small>{{ cert.progress }}%</small></span></div>
+    <div class="kv"><span>Study hours</span>{{ '%g'|format(hours) }}</div>
+    <div class="kv"><span>Start</span>{{ cert.start_date.strftime('%d %b %Y') if cert.start_date else '—' }}</div>
+    <div class="kv"><span>Target</span>{{ cert.target_date.strftime('%d %b %Y') if cert.target_date else '—' }}</div>
+    {% if cert.completed_date %}<div class="kv"><span>Completed</span>{{ cert.completed_date.strftime('%d %b %Y') }}</div>{% endif %}
+    {% if cert.expiry_date %}<div class="kv"><span>Expires</span>{{ cert.expiry_date.strftime('%d %b %Y') }}</div>{% endif %}
+    {% if cert.credential_id %}<div class="kv"><span>Credential ID</span>{{ cert.credential_id }}</div>{% endif %}
+    {% if cert.credential_url %}<div class="kv"><span>Verify</span><a href="{{ cert.credential_url }}" target="_blank" rel="noopener">Open link ↗</a></div>{% endif %}
+    {% if cert.notes %}<p class="notes">{{ cert.notes }}</p>{% endif %}
+  </section>
+
+  <section class="card">
+    <h2>Progress log</h2>
+    {% if cert.user_id == g.user.id and cert.is_active %}
+    <form method="post" action="{{ url_for('views.cert_progress', cert_id=cert.id) }}" class="log-form" novalidate>
+      <input type="hidden" name="_csrf" value="{{ csrf_token() }}">
+      {{ field("log_date", "Date", form or {'log_date': today.isoformat()}, errors, type="date") }}
+      {{ field("hours", "Hours", form, errors, type="number", attrs='step="0.25" min="0.25" max="24"') }}
+      {{ field("progress", "New progress %", form or {'progress': cert.progress}, errors, type="number", attrs='min="0" max="100"') }}
+      {{ field("note", "What did you cover?", form, errors, attrs='maxlength="300"') }}
+      <button class="btn btn-sm">Log progress</button>
+    </form>
+    {% endif %}
+    {% for l in logs %}
+      <div class="log">
+        <b>{{ l.log_date.strftime('%d %b') }}</b>
+        <span>{{ '%g'|format(l.hours) }} h → {{ l.progress }}%</span>
+        <span class="muted">{{ l.note or '' }}</span>
+      </div>
+    {% else %}
+      <p class="muted">No study sessions logged yet.</p>
+    {% endfor %}
+  </section>
+</div>
+<p><a href="{{ url_for('views.cert_list') }}">← Back to list</a></p>
+{% endblock %}

@@ -1,0 +1,50 @@
+{% extends "base.html" %}
+{% from "_macros.html" import field %}
+{% block title %}{{ 'Edit' if cert else 'Add' }} certification{% endblock %}
+{% block content %}
+<h1>{{ 'Edit' if cert else 'Add' }} certification</h1>
+{% if errors %}<div class="flash flash-error">Please fix the highlighted fields.</div>{% endif %}
+
+<form method="post" class="card form-grid" novalidate>
+  <input type="hidden" name="_csrf" value="{{ csrf_token() }}">
+  {{ field("title", "Certification title", form, errors, required=true, attrs='maxlength="120"') }}
+  {{ field("provider", "Provider", form, errors, required=true, help="e.g. AWS, Google Cloud, Microsoft", attrs='list="providers" maxlength="60"') }}
+  <datalist id="providers">{% for p in providers %}<option value="{{ p }}">{% endfor %}</datalist>
+
+  <label class="field {% if errors.category %}has-error{% endif %}">
+    <span>Category *</span>
+    <select name="category" required>
+      <option value="">Choose…</option>
+      {% for c in CATEGORIES %}<option {% if form.get('category') == c %}selected{% endif %}>{{ c }}</option>{% endfor %}
+    </select>
+    {% if errors.category %}<small class="error">{{ errors.category }}</small>{% endif %}
+  </label>
+
+  <label class="field {% if errors.status %}has-error{% endif %}">
+    <span>Status *</span>
+    <select name="status">
+      {% for s in STATUSES %}<option value="{{ s.value }}" {% if form.get('status', 'planned') == s.value %}selected{% endif %}>{{ s.label }}</option>{% endfor %}
+    </select>
+    {% if errors.status %}<small class="error">{{ errors.status }}</small>{% endif %}
+  </label>
+
+  {{ field("progress", "Progress %", form, errors, type="number", help="0 for planned, 100 is set automatically when completed", attrs='min="0" max="100"') }}
+  {{ field("start_date", "Start date", form, errors, type="date") }}
+  {{ field("target_date", "Target date", form, errors, type="date", help="When you plan to take the exam") }}
+  {{ field("completed_date", "Completed on", form, errors, type="date", help="Only for completed certifications") }}
+  {{ field("expiry_date", "Expires on", form, errors, type="date", help="Leave blank if it never expires") }}
+  {{ field("credential_id", "Credential ID", form, errors) }}
+  {{ field("credential_url", "Credential URL", form, errors, type="url", help="Credly / verification link") }}
+
+  <label class="field span2 {% if errors.notes %}has-error{% endif %}">
+    <span>Notes</span>
+    <textarea name="notes" rows="3" maxlength="1000">{{ form.get('notes', '') }}</textarea>
+    {% if errors.notes %}<small class="error">{{ errors.notes }}</small>{% endif %}
+  </label>
+
+  <div class="span2 actions">
+    <button class="btn">{{ 'Save changes' if cert else 'Add certification' }}</button>
+    <a href="{{ url_for('views.cert_detail', cert_id=cert.id) if cert else url_for('views.cert_list') }}" class="muted">Cancel</a>
+  </div>
+</form>
+{% endblock %}
