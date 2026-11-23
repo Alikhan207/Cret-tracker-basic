@@ -1,0 +1,61 @@
+{% extends "base.html" %}
+{% from "_macros.html" import health_badge, status_badge, bar %}
+{% block title %}Dashboard{% endblock %}
+{% block content %}
+<h1>Hi {{ g.user.name.split()[0] }} 👋</h1>
+
+<section class="stats">
+  <div class="stat"><b>{{ d.total }}</b><span>Tracked</span></div>
+  <div class="stat"><b>{{ d.counts[STATUSES[1]] }}</b><span>In progress</span></div>
+  <div class="stat"><b>{{ d.counts[STATUSES[2]] }}</b><span>Completed</span></div>
+  <div class="stat"><b>{{ d.completion_rate }}%</b><span>Completion rate</span></div>
+  <div class="stat"><b>{{ '%g'|format(d.hours) }}</b><span>Study hours logged</span></div>
+  <div class="stat {% if d.overdue %}stat-alert{% endif %}"><b>{{ d.overdue|length }}</b><span>Overdue</span></div>
+</section>
+
+{% if d.total == 0 %}
+<div class="empty">
+  <p>You are not tracking any certifications yet.</p>
+  <a class="btn" href="{{ url_for('views.cert_create') }}">Add your first certification</a>
+</div>
+{% else %}
+<div class="grid2">
+  <section class="card">
+    <h2>Needs attention</h2>
+    {% for c in d.overdue + d.expiring %}
+      <a class="row-link" href="{{ url_for('views.cert_detail', cert_id=c.id) }}">
+        <span>{{ c.title }}<br><small class="muted">{{ c.provider_name }} ·
+          {% if c.is_overdue(today) %}target was {{ c.target_date.strftime('%d %b %Y') }}{% else %}expires {{ c.expiry_date.strftime('%d %b %Y') }}{% endif %}</small></span>
+        {{ health_badge(c) }}
+      </a>
+    {% else %}
+      <p class="muted">Nothing overdue or expiring. Nice.</p>
+    {% endfor %}
+  </section>
+
+  <section class="card">
+    <h2>Next deadlines</h2>
+    {% for c in d.upcoming %}
+      <a class="row-link" href="{{ url_for('views.cert_detail', cert_id=c.id) }}">
+        <span>{{ c.title }}<br><small class="muted">due {{ c.target_date.strftime('%d %b %Y') }} · {{ (c.target_date - today).days }} days left</small></span>
+        <span class="w120">{{ bar(c.progress) }}<small>{{ c.progress }}%</small></span>
+      </a>
+    {% else %}
+      <p class="muted">No upcoming target dates set.</p>
+    {% endfor %}
+  </section>
+</div>
+
+<section class="card">
+  <h2>By category</h2>
+  <div class="cats">
+  {% for cat, items in d.by_category.items() %}
+    <div class="cat">
+      <h3>{{ cat }} <small class="muted">({{ items|length }})</small></h3>
+      {% for c in items %}<div class="cat-item">{{ status_badge(c.status) }} {{ c.title }}</div>{% endfor %}
+    </div>
+  {% endfor %}
+  </div>
+</section>
+{% endif %}
+{% endblock %}
